@@ -1,9 +1,8 @@
-#include "bbl.h"
+#include "kernel_elf.h"
 #include "mtrap.h"
 #include "atomic.h"
 #include "vm.h"
 #include "bits.h"
-#include "config.h"
 #include <string.h>
 
 static kernel_elf_info info;
@@ -57,11 +56,9 @@ static void supervisor_vm_init()
 void boot_loader()
 {
   extern char _payload_start, _payload_end;
+  putstring("BBL-lite\r\n");
   load_kernel_elf(&_payload_start, &_payload_end - &_payload_start, &info);
   supervisor_vm_init();
-#ifdef PK_ENABLE_LOGO
-  print_logo();
-#endif
   mb();
   elf_loaded = 1;
   enter_supervisor_mode((void *)info.entry, 0);

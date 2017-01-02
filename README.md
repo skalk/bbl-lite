@@ -1,18 +1,11 @@
-RISC-V Proxy Kernel and Boot Loader
-=====================================
+RISC-V Boot Loader (Lite)
+=============================
 
 About
 ---------
 
-The RISC-V Proxy Kernel, `pk`, is a lightweight application execution
-environment that can host statically-linked RISC-V ELF binaries.  It is
-designed to support tethered RISC-V implementations with limited I/O
-capability and and thus handles I/O-related system calls by proxying them to
-a host computer.
-
-This package also contains the Berkeley Boot Loader, `bbl`, which is a
-supervisor execution environment for tethered RISC-V systems.  It is
-designed to host the RISC-V Linux port.
+This package contains the BBL-Lite, which is a minimal supervisor execution
+environment for RISC-V systems. It is designed to host the RISC-V Linux port.
 
 Build Steps
 ---------------
@@ -22,17 +15,13 @@ install path, and that the riscv-gnu-toolchain package is installed.
 
     $ mkdir build
     $ cd build
-    $ ../configure --prefix=$RISCV --host=riscv64-unknown-elf
+    $ ../configure --prefix=$RISCV --host=riscv64-unknown-elf --with-payload=linux-4.6.2/vmlinux
     $ make
-    $ make install
 
-Alternatively, the GNU/Linux toolchain may be used to build this package,
-by setting `--host=riscv64-unknown-linux-gnu`.
+By default, the 64-bit (RV64) version of `bbl` is built.  To build a 32-bit
+(RV32) version, supply a `--enable-32bit` flag to the configure command.
 
-By default, 64-bit (RV64) versions of `pk` and `bbl` are built.  To
-built 32-bit (RV32) versions, supply a `--enable-32bit` flag to the
-configure command.
+References
+---------------
 
-The `install` step installs 64-bit build products into
-`$RISCV/riscv64-unknown-elf`, and 32-bit versions into
-`$RISCV/riscv32-unknown-elf`.
+BBL-Lite is derived from [riscv-pk](https://github.com/riscv/riscv-pk/).

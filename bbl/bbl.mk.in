@@ -1,22 +1,31 @@
-bbl_subproject_deps = \
-	util \
-  softfloat \
-  machine \
-  dummy_payload \
-
 bbl_hdrs = \
-  bbl.h \
+  atomic.h \
+  bits.h \
+  configstring.h \
+  encoding.h \
+  htif.h \
+  kernel_elf.h \
+  mcall.h \
+  mtrap.h \
+  sbi.h \
+  vm.h
 
 bbl_c_srcs = \
+  configstring.c \
   kernel_elf.c \
-  logo.c \
+  mtrap.c \
+  minit.c \
+  sbi_impl.c \
+  snprintf.c \
+  string.c
 
 bbl_asm_srcs = \
-  payload.S \
+  mentry.S \
+  sbi_entry.S \
+  sbi.S \
+  payload.S
 
 payload.o: $(bbl_payload)
 
-bbl_test_srcs =
-
 bbl_install_prog_srcs = \
-  bbl.c \
+  bbl.c

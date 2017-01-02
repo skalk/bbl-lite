@@ -1,10 +1,11 @@
 // See LICENSE for license details.
 
+#include "elf.h"
 #include "mtrap.h"
-#include "bbl.h"
 #include "bits.h"
 #include "vm.h"
-#include <elf.h>
+#include "kernel_elf.h"
+
 #include <string.h>
 
 void load_kernel_elf(void* blob, size_t size, kernel_elf_info* info)

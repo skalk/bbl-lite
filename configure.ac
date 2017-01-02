@@ -37,7 +37,7 @@ m4_define( proj_version, [?])
 #-------------------------------------------------------------------------
 
 AC_INIT(proj_name,proj_version,proj_maintainer,proj_abbreviation)
-AC_CONFIG_SRCDIR([pk/pk.h])
+AC_CONFIG_SRCDIR([bbl/encoding.h])
 AC_CONFIG_AUX_DIR([scripts])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -109,7 +109,7 @@ AC_SUBST(install_subdir)
 # The '*' suffix indicates an optional subproject. The '**' suffix
 # indicates an optional subproject which is also the name of a group.
 
-MCPPBS_SUBPROJECTS([ pk, bbl, softfloat, dummy_payload, machine, util ])
+MCPPBS_SUBPROJECTS([ bbl ])
 
 #-------------------------------------------------------------------------
 # MCPPBS subproject groups
@@ -126,6 +126,5 @@ MCPPBS_SUBPROJECTS([ pk, bbl, softfloat, dummy_payload, machine, util ])
 # Output
 #-------------------------------------------------------------------------
 
-AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
