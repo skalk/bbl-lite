@@ -31,6 +31,13 @@ static void query_rtc(const char* config_string)
   mtime = (void*)(uintptr_t)get_uint(res);
 }
 
+static void query_uart(const char* config_string)
+{
+  query_result res = query_config_string(config_string, "uart{addr");
+  assert(res.start);
+  uart_base = (void*)(uintptr_t)get_uint(res);
+}
+
 static void query_plic(const char* config_string)
 {
   query_result res = query_config_string(config_string, "plic{priority");
@@ -111,5 +118,6 @@ void parse_config_string()
   query_mem(s);
   query_plic(s);
   query_rtc(s);
+  query_uart(s);
   query_harts(s);
 }

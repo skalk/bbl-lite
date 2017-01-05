@@ -31,8 +31,9 @@ extern uintptr_t num_harts;
 extern volatile uint64_t* mtime;
 extern volatile uint32_t* plic_priorities;
 extern size_t plic_ndevs;
-extern uint64_t* volatile ptr_tohost;
-extern uint64_t* volatile ptr_fromhost;
+extern volatile uint64_t* ptr_tohost;
+extern volatile uint64_t* ptr_fromhost;
+extern volatile uint64_t* uart_base;
 
 typedef struct {
   uint64_t* timecmp;
