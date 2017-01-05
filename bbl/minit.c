@@ -12,8 +12,9 @@ uintptr_t num_harts;
 volatile uint64_t* mtime;
 volatile uint32_t* plic_priorities;
 size_t plic_ndevs;
-uint64_t* volatile ptr_tohost;
-uint64_t* volatile ptr_fromhost;
+volatile uint64_t* ptr_tohost;
+volatile uint64_t* ptr_fromhost;
+volatile uint64_t* uart_base;
 
 static void mstatus_init()
 {
@@ -47,9 +48,13 @@ static void delegate_traps()
     (1U << CAUSE_USER_ECALL);
 
   write_csr(mideleg, interrupts);
+  write_csr(hideleg, interrupts);
   write_csr(medeleg, exceptions);
+  write_csr(hedeleg, exceptions);
   assert(read_csr(mideleg) == interrupts);
+  assert(read_csr(hideleg) == interrupts);
   assert(read_csr(medeleg) == exceptions);
+  assert(read_csr(hedeleg) == exceptions);
 }
 
 hls_t* hls_init(uintptr_t id)
