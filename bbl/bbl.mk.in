@@ -13,6 +13,7 @@ bbl_hdrs = \
 bbl_c_srcs = \
   configstring.c \
   kernel_elf.c \
+  logo.c \
   mtrap.c \
   minit.c \
   sbi_impl.c \

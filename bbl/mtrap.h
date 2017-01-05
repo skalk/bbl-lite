@@ -70,6 +70,7 @@ void putstring(const char* s);
 
 void enter_supervisor_mode(void (*fn)(uintptr_t), uintptr_t stack)
   __attribute__((noreturn));
+void print_logo();
 void boot_loader();
 void boot_other_hart();
 

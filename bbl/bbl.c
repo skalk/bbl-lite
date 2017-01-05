@@ -56,7 +56,7 @@ static void supervisor_vm_init()
 void boot_loader()
 {
   extern char _payload_start, _payload_end;
-  putstring("BBL-lite\r\n");
+  print_logo();
   load_kernel_elf(&_payload_start, &_payload_end - &_payload_start, &info);
   supervisor_vm_init();
   mb();
