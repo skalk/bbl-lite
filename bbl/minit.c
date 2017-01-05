@@ -48,13 +48,15 @@ static void delegate_traps()
     (1U << CAUSE_USER_ECALL);
 
   write_csr(mideleg, interrupts);
-  write_csr(hideleg, interrupts);
   write_csr(medeleg, exceptions);
-  write_csr(hedeleg, exceptions);
   assert(read_csr(mideleg) == interrupts);
-  assert(read_csr(hideleg) == interrupts);
   assert(read_csr(medeleg) == exceptions);
+#if ENABLE_H_MODE
+  write_csr(hideleg, interrupts);
+  write_csr(hedeleg, exceptions);
+  assert(read_csr(hideleg) == interrupts);
   assert(read_csr(hedeleg) == exceptions);
+#endif
 }
 
 hls_t* hls_init(uintptr_t id)
