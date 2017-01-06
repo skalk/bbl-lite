@@ -2,6 +2,7 @@
 #include "atomic.h"
 #include "vm.h"
 #include "bits.h"
+#include "uart.h"
 #include <string.h>
 #include <limits.h>
 
@@ -14,7 +15,7 @@ volatile uint32_t* plic_priorities;
 size_t plic_ndevs;
 volatile uint64_t* ptr_tohost;
 volatile uint64_t* ptr_fromhost;
-volatile uint64_t* uart_base;
+volatile uint8_t* uart_base;
 
 static void mstatus_init()
 {
@@ -90,6 +91,22 @@ static void plic_init()
     plic_priorities[i] = 1;
 }
 
+static void uart_init()
+{
+  /* enable UART frequency programming */
+  uart_base[REG_LCR] = LCR_DLAB;
+
+  /* set highest frequency */
+  uart_base[REG_DLL] = 1;
+  uart_base[REG_DLM] = 0;
+
+  /* 8-bit data, 1-bit odd parity */
+  uart_base[REG_LCR] = LCR_8BIT | LCR_PODD;
+
+  /* interrupt */
+  uart_base[REG_IER] = IER_ERBDA;
+}
+
 static void hart_plic_init()
 {
   // clear pending interrupts
@@ -113,6 +130,7 @@ void init_first_hart()
   hls_init(0); // this might get called again from parse_config_string
   parse_config_string();
   plic_init();
+  uart_init();
   hart_plic_init();
   memory_init();
   boot_loader();

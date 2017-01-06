@@ -1,6 +1,6 @@
 #include "mtrap.h"
 #include "mcall.h"
-#include "htif.h"
+#include "uart.h"
 #include "atomic.h"
 #include "bits.h"
 #include <errno.h>
@@ -19,73 +19,29 @@ static uintptr_t mcall_hart_id()
   return read_csr(mhartid);
 }
 
-static void request_htif_keyboard_interrupt()
-{
-  assert(*ptr_tohost == 0);
-  *ptr_tohost = TOHOST_CMD(1, 0, 0);
-}
-
-static void __htif_interrupt()
-{
-  // we should only be interrupted by keypresses
-  uint64_t fh = *ptr_fromhost;
-  if (!fh)
-    return;
-  if (!(FROMHOST_DEV(fh) == 1 && FROMHOST_CMD(fh) == 0))
-    die("unexpected htif interrupt");
-  HLS()->console_ibuf = 1 + (uint8_t)FROMHOST_DATA(fh);
-  *ptr_fromhost = 0;
-  set_csr(mip, MIP_SSIP);
-}
-
-static void do_tohost_fromhost(uintptr_t dev, uintptr_t cmd, uintptr_t data)
-{
-  spinlock_lock(&htif_lock);
-    while (*ptr_tohost)
-      __htif_interrupt();
-    *ptr_tohost = TOHOST_CMD(dev, cmd, data);
-    while (1) {
-      uint64_t fh = *ptr_fromhost;
-      if (fh) {
-        if (FROMHOST_DEV(fh) == dev && FROMHOST_CMD(fh) == cmd) {
-          *ptr_fromhost = 0;
-          break;
-        }
-        __htif_interrupt();
-      }
-    }
-  spinlock_unlock(&htif_lock);
-}
-
-static void htif_interrupt()
-{
-  if (spinlock_trylock(&htif_lock) == 0) {
-    __htif_interrupt();
-    spinlock_unlock(&htif_lock);
-  }
-}
-
 uintptr_t timer_interrupt()
 {
   // just send the timer interrupt to the supervisor
   clear_csr(mie, MIP_MTIP);
   set_csr(mip, MIP_STIP);
-
-  // and poll the HTIF console
-  htif_interrupt();
-
   return 0;
+}
+
+static uintptr_t mcall_console_getchar()
+{
+  if ((uart_base[REG_IIR] & IIR_RX_RDY) == 0) return -1;
+  else return uart_base[REG_RBR];
 }
 
 static uintptr_t mcall_console_putchar(uint8_t ch)
 {
-  do_tohost_fromhost(1, 1, ch);
+  while ((uart_base[REG_IIR] & IIR_TX_RDY) == 0);
+  uart_base[REG_THR] = ch;
   return 0;
 }
 
 static uintptr_t mcall_htif_syscall(uintptr_t magic_mem)
 {
-  do_tohost_fromhost(0, 0, magic_mem);
   return 0;
 }
 
@@ -137,15 +93,6 @@ static void reset_ssip()
 
   if (HLS()->sipi_pending || HLS()->console_ibuf > 0)
     set_csr(mip, MIP_SSIP);
-}
-
-static uintptr_t mcall_console_getchar()
-{
-  int ch = atomic_swap(&HLS()->console_ibuf, -1);
-  if (ch >= 0)
-    request_htif_keyboard_interrupt();
-  reset_ssip();
-  return ch - 1;
 }
 
 static uintptr_t mcall_clear_ipi()

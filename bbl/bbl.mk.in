@@ -3,11 +3,11 @@ bbl_hdrs = \
   bits.h \
   configstring.h \
   encoding.h \
-  htif.h \
   kernel_elf.h \
   mcall.h \
   mtrap.h \
   sbi.h \
+  uart.h \
   vm.h
 
 bbl_c_srcs = \
