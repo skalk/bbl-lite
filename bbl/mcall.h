@@ -11,6 +11,7 @@
 #define MCALL_SET_TIMER 7
 #define MCALL_REMOTE_SFENCE_VM 8
 #define MCALL_REMOTE_FENCE_I 9
+#define MCALL_TIMEBASE 10
 
 #ifndef __ASSEMBLER__
 

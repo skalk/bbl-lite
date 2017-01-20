@@ -206,6 +206,9 @@ void mcall_trap(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
     case MCALL_REMOTE_FENCE_I:
       retval = mcall_remote_fence_i((uintptr_t*)arg0);
       break;
+    case MCALL_TIMEBASE:
+      retval = rtc_hz;
+      break;
     default:
       retval = -ENOSYS;
       break;

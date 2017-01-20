@@ -29,6 +29,9 @@ static void query_rtc(const char* config_string)
   query_result res = query_config_string(config_string, "rtc{addr");
   assert(res.start);
   mtime = (void*)(uintptr_t)get_uint(res);
+  res = query_config_string(config_string, "rtc{hz");
+  assert(res.start);
+  rtc_hz = (uintptr_t)get_uint(res);
 }
 
 static void query_uart(const char* config_string)

@@ -28,6 +28,7 @@ static inline int xlen()
 extern uintptr_t first_free_paddr;
 extern uintptr_t mem_size;
 extern uintptr_t num_harts;
+extern uintptr_t rtc_hz;
 extern volatile uint64_t* mtime;
 extern volatile uint32_t* plic_priorities;
 extern size_t plic_ndevs;
