@@ -17,7 +17,7 @@
 #define STR(x) XSTR(x)
 #define XSTR(x) #x
 
-#if defined (__riscv64) || __riscv_xlen == 64
+#if __riscv_xlen == 64
 # define SLL32    sllw
 # define STORE    sd
 # define LOAD     ld

@@ -33,7 +33,7 @@ void load_kernel_elf(void* blob, size_t size, kernel_elf_info* info)
   for (int i = eh->e_phnum - 1; i >= 0; i--) {
     if(ph[i].p_type == PT_LOAD && ph[i].p_memsz) {
       uintptr_t prepad = ph[i].p_vaddr % RISCV_PGSIZE;
-      uintptr_t vaddr = ph[i].p_vaddr + bias;
+      uintptr_t vaddr = ph[i].p_vaddr; // + bias;
       if (vaddr + ph[i].p_memsz > max_vaddr)
         max_vaddr = vaddr + ph[i].p_memsz;
       if (ph[i].p_offset + ph[i].p_filesz > size)

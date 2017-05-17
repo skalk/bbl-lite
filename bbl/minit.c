@@ -2,7 +2,6 @@
 #include "atomic.h"
 #include "vm.h"
 #include "bits.h"
-#include "uart.h"
 #include <string.h>
 #include <limits.h>
 
@@ -10,13 +9,9 @@ pte_t* root_page_table;
 uintptr_t first_free_paddr;
 uintptr_t mem_size;
 uintptr_t num_harts;
-uintptr_t rtc_hz;
 volatile uint64_t* mtime;
 volatile uint32_t* plic_priorities;
 size_t plic_ndevs;
-volatile uint64_t* ptr_tohost;
-volatile uint64_t* ptr_fromhost;
-volatile uint8_t* uart_base;
 
 static void mstatus_init()
 {
@@ -31,8 +26,8 @@ static void mstatus_init()
   assert(EXTRACT_FIELD(ms, MSTATUS_VM) == VM_CHOICE);
 
   // Enable user/supervisor use of perf counters
-  //write_csr(mucounteren, -1);
-  //write_csr(mscounteren, -1);
+  write_csr(mucounteren, -1);
+  write_csr(mscounteren, -1);
   write_csr(mie, ~MIP_MTIP); // disable timer; enable other interrupts
 }
 
@@ -47,18 +42,13 @@ static void delegate_traps()
     (1U << CAUSE_FAULT_LOAD) |
     (1U << CAUSE_FAULT_STORE) |
     (1U << CAUSE_BREAKPOINT) |
-    (1U << CAUSE_USER_ECALL);
+    (1U << CAUSE_USER_ECALL) |
+    (1U << CAUSE_ILLEGAL_INSTRUCTION);
 
   write_csr(mideleg, interrupts);
   write_csr(medeleg, exceptions);
   assert(read_csr(mideleg) == interrupts);
   assert(read_csr(medeleg) == exceptions);
-#if ENABLE_H_MODE
-  write_csr(hideleg, interrupts);
-  write_csr(hedeleg, exceptions);
-  assert(read_csr(hideleg) == interrupts);
-  assert(read_csr(hedeleg) == exceptions);
-#endif
 }
 
 hls_t* hls_init(uintptr_t id)
@@ -92,20 +82,17 @@ static void plic_init()
     plic_priorities[i] = 1;
 }
 
-static void uart_init()
+static void prci_test()
 {
-  /* enable UART frequency programming */
-  uart_base[REG_LCR] = LCR_DLAB;
+  assert(!(read_csr(mip) & MIP_MSIP));
+  *HLS()->ipi = 1;
+  assert(read_csr(mip) & MIP_MSIP);
+  *HLS()->ipi = 0;
 
-  /* set highest frequency */
-  uart_base[REG_DLL] = 1;
-  uart_base[REG_DLM] = 0;
-
-  /* 8-bit data, 1-bit odd parity */
-  uart_base[REG_LCR] = LCR_8BIT | LCR_PODD;
-
-  /* interrupt */
-  uart_base[REG_IER] = IER_ERBDA;
+  assert(!(read_csr(mip) & MIP_MTIP));
+  *HLS()->timecmp = 0;
+  assert(read_csr(mip) & MIP_MTIP);
+  *HLS()->timecmp = -1ULL;
 }
 
 static void hart_plic_init()
@@ -131,8 +118,8 @@ void init_first_hart()
   hls_init(0); // this might get called again from parse_config_string
   parse_config_string();
   plic_init();
-  uart_init();
   hart_plic_init();
+  //prci_test();
   memory_init();
   boot_loader();
 }

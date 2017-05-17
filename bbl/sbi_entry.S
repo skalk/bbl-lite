@@ -56,8 +56,7 @@ sbi_base:
 
   # timebase
   .align 4
-  li a7, MCALL_TIMEBASE
-  ecall
+  li a0, 10000000 # or, you know, we could provide the correct answer
   ret
 
   # shutdown

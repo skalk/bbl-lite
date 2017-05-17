@@ -15,26 +15,26 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define read_const_csr(reg) ({ unsigned long __tmp; \
+  asm ("csrr %0, " #reg : "=r"(__tmp)); \
+  __tmp; })
+
 static inline int supports_extension(char ext)
 {
-  return read_csr(misa) & (1 << (ext - 'A'));
+  return read_const_csr(misa) & (1 << (ext - 'A'));
 }
 
 static inline int xlen()
 {
-  return read_csr(misa) < 0 ? 64 : 32;
+  return read_const_csr(misa) < 0 ? 64 : 32;
 }
 
 extern uintptr_t first_free_paddr;
 extern uintptr_t mem_size;
 extern uintptr_t num_harts;
-extern uintptr_t rtc_hz;
 extern volatile uint64_t* mtime;
 extern volatile uint32_t* plic_priorities;
 extern size_t plic_ndevs;
-extern volatile uint64_t* ptr_tohost;
-extern volatile uint64_t* ptr_fromhost;
-extern volatile uint8_t* uart_base;
 
 typedef struct {
   uint64_t* timecmp;
@@ -59,7 +59,7 @@ typedef struct {
 
 // hart-local storage, at top of stack
 #define HLS() ((hls_t*)(MACHINE_STACK_TOP() - HLS_SIZE))
-#define OTHER_HLS(id) ((hls_t*)((void*)HLS() + RISCV_PGSIZE * ((id) - read_csr(mhartid))))
+#define OTHER_HLS(id) ((hls_t*)((void*)HLS() + RISCV_PGSIZE * ((id) - read_const_csr(mhartid))))
 
 hls_t* hls_init(uintptr_t hart_id);
 void parse_config_string();
@@ -71,7 +71,6 @@ void putstring(const char* s);
 
 void enter_supervisor_mode(void (*fn)(uintptr_t), uintptr_t stack)
   __attribute__((noreturn));
-void print_logo();
 void boot_loader();
 void boot_other_hart();
 

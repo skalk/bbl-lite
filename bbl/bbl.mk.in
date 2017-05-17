@@ -7,7 +7,6 @@ bbl_hdrs = \
   mcall.h \
   mtrap.h \
   sbi.h \
-  uart.h \
   vm.h
 
 bbl_c_srcs = \

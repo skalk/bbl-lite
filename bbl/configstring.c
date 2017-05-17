@@ -4,16 +4,6 @@
 #include "atomic.h"
 #include <stdio.h>
 
-static void query_htif(const char* config_string)
-{
-  query_result res = query_config_string(config_string, "htif{tohost");
-  assert(res.start);
-  ptr_tohost = (void*)(uintptr_t)get_uint(res);
-  res = query_config_string(config_string, "htif{fromhost");
-  assert(res.start);
-  ptr_fromhost = (void*)(uintptr_t)get_uint(res);
-}
-
 static void query_mem(const char* config_string)
 {
   query_result res = query_config_string(config_string, "ram{0{addr");
@@ -29,16 +19,6 @@ static void query_rtc(const char* config_string)
   query_result res = query_config_string(config_string, "rtc{addr");
   assert(res.start);
   mtime = (void*)(uintptr_t)get_uint(res);
-  res = query_config_string(config_string, "rtc{hz");
-  assert(res.start);
-  rtc_hz = (uintptr_t)get_uint(res);
-}
-
-static void query_uart(const char* config_string)
-{
-  query_result res = query_config_string(config_string, "uart{addr");
-  assert(res.start);
-  uart_base = (void*)(uintptr_t)get_uint(res);
 }
 
 static void query_plic(const char* config_string)
@@ -56,7 +36,7 @@ static void query_plic(const char* config_string)
 
 static void query_hart_plic(const char* config_string, hls_t* hls, int core, int hart)
 {
-  char buf[48];
+  char buf[32];
   snprintf(buf, sizeof buf, "core{%d{%d{plic{m{ie", core, hart);
   query_result res = query_config_string(config_string, buf);
   if (res.start)
@@ -82,7 +62,7 @@ static void query_harts(const char* config_string)
 {
   for (int core = 0, hart; ; core++) {
     for (hart = 0; ; hart++) {
-      char buf[40];
+      char buf[32];
       snprintf(buf, sizeof buf, "core{%d{%d{ipi", core, hart);
       query_result res = query_config_string(config_string, buf);
       if (!res.start)
@@ -113,14 +93,10 @@ static void query_harts(const char* config_string)
 
 void parse_config_string()
 {
-  char buf[80];
-
   uint32_t addr = *(uint32_t*)CONFIG_STRING_ADDR;
   const char* s = (const char*)(uintptr_t)addr;
-  query_htif(s);
   query_mem(s);
   query_plic(s);
   query_rtc(s);
-  query_uart(s);
   query_harts(s);
 }

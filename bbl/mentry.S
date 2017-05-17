@@ -3,10 +3,6 @@
 #include "mtrap.h"
 #include "bits.h"
 
-.equ SOFTWARE_INTERRUPT_VECTOR, 12
-.equ TIMER_INTERRUPT_VECTOR, 13
-.equ TRAP_FROM_MACHINE_MODE_VECTOR, 14
-
   .data
   .align 6
 trap_table:
@@ -22,8 +18,11 @@ trap_table:
   .word mcall_trap
   .word bad_trap
   .word bad_trap
+#define SOFTWARE_INTERRUPT_VECTOR 12
   .word software_interrupt
+#define TIMER_INTERRUPT_VECTOR 13
   .word timer_interrupt
+#define TRAP_FROM_MACHINE_MODE_VECTOR 14
   .word __trap_from_machine_mode
 
   .option norvc

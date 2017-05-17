@@ -1,22 +1,87 @@
 #include "mtrap.h"
 #include "mcall.h"
-#include "uart.h"
+#include "htif.h"
 #include "atomic.h"
 #include "bits.h"
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 
+volatile uint64_t tohost __attribute__((aligned(64))) __attribute__((section("htif")));
+volatile uint64_t fromhost __attribute__((aligned(64))) __attribute__((section("htif")));
 static spinlock_t htif_lock = SPINLOCK_INIT;
 
-void __attribute__((noreturn)) bad_trap()
+static char *traps[12] =
+{ "instruction misaligned",
+  "instruction access fault",
+  "illegal intstruction",
+  "breakpoint",
+  "load address misaligned",
+  "load access fault"
+  "store address misaligned",
+  "store access fault",
+  "ecall from  U-mode",
+  "ecall from  S-mode",
+  "ecall from  H-mode",
+  "ecall from  M-mode" };
+
+void __attribute__((noreturn)) bad_trap(uintptr_t* regs)
 {
-  die("machine mode: unhandlable trap %d @ %p", read_csr(mcause), read_csr(mepc));
+	unsigned long cause = read_csr(mcause);
+  die("machine mode: unhandlable trap '%s' (%d) @ ip %p sp %p addr %p", 
+  cause <= 12 ? traps[cause] : "<unknwown>", cause, read_csr(mepc), regs[2], read_csr(mbadaddr));
 }
 
 static uintptr_t mcall_hart_id()
 {
-  return read_csr(mhartid);
+  return read_const_csr(mhartid);
+}
+
+static void request_htif_keyboard_interrupt()
+{
+  assert(tohost == 0);
+  tohost = TOHOST_CMD(1, 0, 0);
+}
+
+static void __htif_interrupt()
+{
+  // we should only be interrupted by keypresses
+  uint64_t fh = fromhost;
+  if (!fh)
+    return;
+  if (!(FROMHOST_DEV(fh) == 1 && FROMHOST_CMD(fh) == 0))
+    die("unexpected htif interrupt");
+  HLS()->console_ibuf = 1 + (uint8_t)FROMHOST_DATA(fh);
+  fromhost = 0;
+  set_csr(mip, MIP_SSIP);
+}
+
+static void do_tohost_fromhost(uintptr_t dev, uintptr_t cmd, uintptr_t data)
+{
+  spinlock_lock(&htif_lock);
+    while (tohost)
+      __htif_interrupt();
+    tohost = TOHOST_CMD(dev, cmd, data);
+
+    while (1) {
+      uint64_t fh = fromhost;
+      if (fh) {
+        if (FROMHOST_DEV(fh) == dev && FROMHOST_CMD(fh) == cmd) {
+          fromhost = 0;
+          break;
+        }
+        __htif_interrupt();
+      }
+    }
+  spinlock_unlock(&htif_lock);
+}
+
+static void htif_interrupt()
+{
+  if (spinlock_trylock(&htif_lock) == 0) {
+    __htif_interrupt();
+    spinlock_unlock(&htif_lock);
+  }
 }
 
 uintptr_t timer_interrupt()
@@ -24,31 +89,29 @@ uintptr_t timer_interrupt()
   // just send the timer interrupt to the supervisor
   clear_csr(mie, MIP_MTIP);
   set_csr(mip, MIP_STIP);
-  return 0;
-}
 
-static uintptr_t mcall_console_getchar()
-{
-  if ((uart_base[REG_IIR] & IIR_RX_RDY) == 0) return -1;
-  else return uart_base[REG_RBR];
+  // and poll the HTIF console
+  htif_interrupt();
+
+  return 0;
 }
 
 static uintptr_t mcall_console_putchar(uint8_t ch)
 {
-  while ((uart_base[REG_IIR] & IIR_TX_RDY) == 0);
-  uart_base[REG_THR] = ch;
+  do_tohost_fromhost(1, 1, ch);
   return 0;
 }
 
 static uintptr_t mcall_htif_syscall(uintptr_t magic_mem)
 {
+  do_tohost_fromhost(0, 0, magic_mem);
   return 0;
 }
 
 void poweroff()
 {
   while (1)
-    *ptr_tohost = 1;
+    tohost = 1;
 }
 
 void putstring(const char* s)
@@ -93,6 +156,15 @@ static void reset_ssip()
 
   if (HLS()->sipi_pending || HLS()->console_ibuf > 0)
     set_csr(mip, MIP_SSIP);
+}
+
+static uintptr_t mcall_console_getchar()
+{
+  int ch = atomic_swap(&HLS()->console_ibuf, -1);
+  if (ch >= 0)
+    request_htif_keyboard_interrupt();
+  reset_ssip();
+  return ch - 1;
 }
 
 static uintptr_t mcall_clear_ipi()
@@ -169,7 +241,7 @@ static uintptr_t mcall_remote_fence_i(uintptr_t* hart_mask)
 
 void mcall_trap(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
-  uintptr_t n = regs[17], arg0 = regs[10], arg1 = regs[11], retval;
+  uintptr_t n = regs[10], arg0 = regs[11], arg1 = regs[12], retval;
   switch (n)
   {
     case MCALL_HART_ID:
@@ -194,7 +266,7 @@ void mcall_trap(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
       retval = mcall_shutdown();
       break;
     case MCALL_SET_TIMER:
-#ifdef __riscv32
+#if __riscv_xlen == 32
       retval = mcall_set_timer(arg0 + ((uint64_t)arg1 << 32));
 #else
       retval = mcall_set_timer(arg0);
@@ -205,9 +277,6 @@ void mcall_trap(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
       break;
     case MCALL_REMOTE_FENCE_I:
       retval = mcall_remote_fence_i((uintptr_t*)arg0);
-      break;
-    case MCALL_TIMEBASE:
-      retval = rtc_hz;
       break;
     default:
       retval = -ENOSYS;
@@ -242,7 +311,7 @@ static void machine_page_fault(uintptr_t* regs, uintptr_t mepc)
     write_csr(sbadaddr, read_csr(mbadaddr));
     return redirect_trap(regs[12], regs[13]);
   }
-  bad_trap();
+  bad_trap(regs);
 }
 
 void trap_from_machine_mode(uintptr_t* regs, uintptr_t dummy, uintptr_t mepc)
@@ -255,6 +324,6 @@ void trap_from_machine_mode(uintptr_t* regs, uintptr_t dummy, uintptr_t mepc)
     case CAUSE_FAULT_STORE:
       return machine_page_fault(regs, mepc);
     default:
-      bad_trap();
+      bad_trap(regs);
   }
 }
