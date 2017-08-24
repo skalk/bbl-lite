@@ -31,7 +31,7 @@ static void supervisor_vm_init()
   }
 #endif
 
-  for (uintptr_t vaddr = info.first_user_vaddr, paddr = vaddr, end = info.first_vaddr_after_user;
+  for (uintptr_t vaddr = info.first_user_vaddr, paddr = vaddr;
        paddr < DRAM_BASE + mem_size; vaddr += MEGAPAGE_SIZE, paddr += MEGAPAGE_SIZE) {
     int l2_shift = RISCV_PGLEVEL_BITS + RISCV_PGSHIFT;
     size_t l2_idx = (info.first_user_vaddr >> l2_shift) & ((1 << RISCV_PGLEVEL_BITS)-1);

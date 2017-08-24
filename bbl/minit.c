@@ -82,6 +82,7 @@ static void plic_init()
     plic_priorities[i] = 1;
 }
 
+#if 0
 static void prci_test()
 {
   assert(!(read_csr(mip) & MIP_MSIP));
@@ -94,6 +95,7 @@ static void prci_test()
   assert(read_csr(mip) & MIP_MTIP);
   *HLS()->timecmp = -1ULL;
 }
+#endif
 
 static void hart_plic_init()
 {
