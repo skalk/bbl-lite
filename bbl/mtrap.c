@@ -272,6 +272,9 @@ void mcall_trap(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
       retval = mcall_set_timer(arg0);
 #endif
       break;
+    case MCALL_GET_TIMER:
+      retval = *mtime;
+      break;
     case MCALL_REMOTE_SFENCE_VM:
       retval = mcall_remote_sfence_vm((uintptr_t*)arg0, arg1);
       break;
