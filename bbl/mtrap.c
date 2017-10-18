@@ -239,6 +239,7 @@ static uintptr_t mcall_remote_fence_i(uintptr_t* hart_mask)
   return 0;
 }
 
+void redirect_trap(uintptr_t epc, uintptr_t mstatus);
 void mcall_trap(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
 {
   uintptr_t n = regs[10], arg0 = regs[11], arg1 = regs[12], retval;
@@ -282,7 +283,7 @@ void mcall_trap(uintptr_t* regs, uintptr_t mcause, uintptr_t mepc)
       retval = mcall_remote_fence_i((uintptr_t*)arg0);
       break;
     default:
-      retval = -ENOSYS;
+      redirect_trap(read_csr(mepc), read_csr(mstatus));
       break;
   }
   regs[10] = retval;
